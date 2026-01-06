@@ -1,0 +1,13 @@
+[package]
+name = "disk_analyzer"
+version = "0.1.0"
+edition = "2024"
+authors = ["Dav32_1 <64831818+Dav321@users.noreply.github.com>"]
+license = "GPL-3.0-or-later"
+
+[dependencies]
+
+[profile.dev]
+opt-level = 1
+[profile.dev.package."*"]
+opt-level = 3
