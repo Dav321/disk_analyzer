@@ -51,25 +51,26 @@ pub enum FileNode {
         name: String,
         parent: Option<NodeId>,
         size: Option<u64>,
-        children: Vec<NodeId>
-    }
+        children: Vec<NodeId>,
+    },
 }
 
 impl FileNode {
     pub fn file(name: String, parent: NodeId, size: u64) -> Self {
-        Self::File {
-            name,
-            parent,
-            size
-        }
+        Self::File { name, parent, size }
     }
 
-    pub fn dir(name: String, parent: Option<NodeId>, size: Option<u64>, children: Vec<NodeId>) -> Self {
+    pub fn dir(
+        name: String,
+        parent: Option<NodeId>,
+        size: Option<u64>,
+        children: Vec<NodeId>,
+    ) -> Self {
         Self::Dir {
             name,
             parent,
             size,
-            children
+            children,
         }
     }
 }
@@ -77,8 +78,7 @@ impl FileNode {
 impl Display for FileNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            FileNode::File { name, size, .. } =>
-                write!(f, "File \"{}\" ({})", name, size),
+            FileNode::File { name, size, .. } => write!(f, "File \"{}\" ({})", name, size),
             FileNode::Dir { name, .. } => {
                 write!(f, "Dir \"{}\"", name)
             }

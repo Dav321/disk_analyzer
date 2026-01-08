@@ -56,17 +56,13 @@ impl App {
     pub fn render(&mut self, frame: &mut Frame) {
         let area = frame.area();
 
-        let chunks = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Fill(1),
-        ]).split(area);
+        let chunks = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
 
         self.render_header(frame, chunks[0]);
 
         let text = format!("{}", self.tree);
 
-        let paragraph = Paragraph::new(text)
-            .scroll((self.scroll as u16, 0));
+        let paragraph = Paragraph::new(text).scroll((self.scroll as u16, 0));
         frame.render_widget(paragraph, chunks[1]);
         frame.render_stateful_widget(
             Scrollbar::new(ScrollbarOrientation::VerticalRight)
@@ -82,7 +78,7 @@ impl App {
             .title_alignment(HorizontalAlignment::Center)
             .title(vec![
                 "Disk Analyzer".add_modifier(Modifier::BOLD),
-                env!("CARGO_PKG_VERSION").reset()
+                env!("CARGO_PKG_VERSION").reset(),
             ]);
         frame.render_widget(title, area);
     }

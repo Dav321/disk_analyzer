@@ -1,12 +1,10 @@
 use crate::filetree::{FileNode, FileTree, NodeId};
 use crate::scan::scanner::Scanner;
 use std::collections::VecDeque;
-use std::fs as fs;
+use std::fs;
 use std::path::PathBuf;
 
-pub struct StdFsScanner {
-
-}
+pub struct StdFsScanner {}
 
 impl StdFsScanner {
     fn filename(path: &PathBuf) -> String {
@@ -14,7 +12,11 @@ impl StdFsScanner {
         if file_name.is_none() {
             return "".to_string();
         }
-        file_name.unwrap().to_owned().into_string().expect("Invalid Path!")
+        file_name
+            .unwrap()
+            .to_owned()
+            .into_string()
+            .expect("Invalid Path!")
     }
 }
 
@@ -33,10 +35,8 @@ impl Scanner for StdFsScanner {
                 let name = Self::filename(&path);
                 let index = tree.nodes.len();
                 match tree.nodes.get_mut(node_id).unwrap() {
-                    FileNode::Dir { children, .. } => {
-                        children.push(index)
-                    }
-                    _  => unreachable!(),
+                    FileNode::Dir { children, .. } => children.push(index),
+                    _ => unreachable!(),
                 }
 
                 if path.is_dir() {

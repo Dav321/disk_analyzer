@@ -4,15 +4,15 @@ use crate::scan::std_fs::StdFsScanner;
 use std::io;
 use std::path::PathBuf;
 
+mod app;
 mod filetree;
 mod scan;
-mod app;
 
 fn main() -> io::Result<()> {
     color_eyre::install().expect("Could not install color_eyre");
     println!("disk_analyzer");
 
-    let scanner = StdFsScanner{};
+    let scanner = StdFsScanner {};
     print!("Scanning with {}...", scanner.name());
     let tree = scanner.scan_path(PathBuf::from("."))?;
     println!(" Done!");
