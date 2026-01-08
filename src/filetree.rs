@@ -2,6 +2,7 @@ use std::fmt::{Debug, Display, Formatter};
 
 pub type NodeId = usize;
 
+#[derive(Debug)]
 pub struct FileTree {
     pub nodes: Vec<FileNode>,
     pub root: NodeId,
@@ -39,6 +40,7 @@ impl Display for FileTree {
     }
 }
 
+#[derive(Debug)]
 pub enum FileNode {
     File {
         name: String,
@@ -69,12 +71,6 @@ impl FileNode {
             size,
             children
         }
-    }
-}
-
-impl Debug for FileNode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self, f)
     }
 }
 

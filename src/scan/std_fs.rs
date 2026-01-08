@@ -1,8 +1,8 @@
-use std::collections::VecDeque;
 use crate::filetree::{FileNode, FileTree, NodeId};
 use crate::scan::scanner::Scanner;
-use std::path::PathBuf;
+use std::collections::VecDeque;
 use std::fs as fs;
+use std::path::PathBuf;
 
 pub struct StdFsScanner {
 
@@ -56,5 +56,9 @@ impl Scanner for StdFsScanner {
         }
 
         Ok(tree)
+    }
+
+    fn name(&self) -> &'static str {
+        "Standard Scanner"
     }
 }

@@ -6,6 +6,9 @@ authors = ["Dav32_1 <64831818+Dav321@users.noreply.github.com>"]
 license = "GPL-3.0-or-later"
 
 [dependencies]
+ratatui = "0.30.0"
+crossterm = "0.29.0"
+color-eyre = "0.6.5"
 
 [profile.dev]
 opt-level = 1
