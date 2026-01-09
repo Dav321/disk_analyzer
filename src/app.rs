@@ -2,7 +2,7 @@ use crate::filetree::FileTree;
 use crossterm::event;
 use crossterm::event::KeyCode;
 use ratatui::layout::Rect;
-use ratatui::prelude::{Constraint, HorizontalAlignment, Layout, Modifier, Stylize, Widget};
+use ratatui::prelude::{Constraint, HorizontalAlignment, Layout, Line, Modifier, Stylize};
 use ratatui::widgets::{Block, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState};
 use ratatui::{DefaultTerminal, Frame};
 use std::io;
@@ -59,16 +59,30 @@ impl App {
         let chunks = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
 
         self.render_header(frame, chunks[0]);
+        self.render_content(frame, chunks[1])
+    }
 
+    fn render_content(&mut self, frame: &mut Frame, area: Rect) {
         let text = format!("{}", self.tree);
+        let line_count = text.lines().count();
 
-        let paragraph = Paragraph::new(text).scroll((self.scroll as u16, 0));
-        frame.render_widget(paragraph, chunks[1]);
+        let instructions = Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]);
+        let block = Block::bordered().title_bottom(instructions);
+        let paragraph = Paragraph::new(text)
+            .block(block)
+            .scroll((self.scroll as u16, 0));
+        frame.render_widget(paragraph, area);
+
+        self.scroll_state = self
+            .scroll_state
+            .content_length(line_count)
+            .viewport_content_length(area.height as usize);
+
         frame.render_stateful_widget(
             Scrollbar::new(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("↑"))
                 .end_symbol(Some("↓")),
-            chunks[1],
+            area,
             &mut self.scroll_state,
         );
     }
