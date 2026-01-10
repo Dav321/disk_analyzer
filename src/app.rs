@@ -1,9 +1,11 @@
-use crate::filetree::FileTree;
+use crate::filetree::{FileNode, FileTree, NodeId};
 use crossterm::event;
 use crossterm::event::KeyCode;
 use ratatui::layout::Rect;
-use ratatui::prelude::{Constraint, HorizontalAlignment, Layout, Line, Modifier, Stylize};
-use ratatui::widgets::{Block, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState};
+use ratatui::prelude::{Constraint, HorizontalAlignment, Layout, Line, Modifier, Style, Stylize};
+use ratatui::widgets::{
+    Block, Cell, Row, Scrollbar, ScrollbarOrientation, ScrollbarState, Table, TableState,
+};
 use ratatui::{DefaultTerminal, Frame};
 use std::io;
 use std::time::{Duration, Instant};
@@ -11,16 +13,16 @@ use std::time::{Duration, Instant};
 #[derive(Debug)]
 pub struct App {
     tree: FileTree,
-    scroll_state: ScrollbarState,
     scroll: usize,
+    folder: NodeId,
 }
 
 impl App {
     pub fn new(tree: FileTree) -> Self {
         Self {
             tree,
-            scroll_state: ScrollbarState::default(),
             scroll: 0,
+            folder: 0,
         }
     }
 
@@ -39,13 +41,20 @@ impl App {
             if let Some(key) = event::read()?.as_key_press_event() {
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Up => {
-                        self.scroll = self.scroll.saturating_sub(1);
-                        self.scroll_state = self.scroll_state.position(self.scroll);
+                    KeyCode::Up => self.scroll = self.scroll.saturating_sub(1),
+                    KeyCode::Down => self.scroll = self.scroll.saturating_add(1),
+                    KeyCode::Right | KeyCode::Enter => {
+                        let i = self.tree.children(self.folder)[self.scroll];
+                        if let FileNode::Dir { .. } = self.tree.nodes[i] {
+                            self.folder = i;
+                        }
                     }
-                    KeyCode::Down => {
-                        self.scroll = self.scroll.saturating_add(1);
-                        self.scroll_state = self.scroll_state.position(self.scroll);
+                    KeyCode::Left | KeyCode::Esc => {
+                        if let FileNode::Dir { parent, .. } = self.tree.nodes[self.folder] {
+                            if let Some(parent) = parent {
+                                self.folder = parent;
+                            }
+                        }
                     }
                     _ => {}
                 }
@@ -63,19 +72,49 @@ impl App {
     }
 
     fn render_content(&mut self, frame: &mut Frame, area: Rect) {
-        let text = format!("{}", self.tree);
-        let line_count = text.lines().count();
-
-        let instructions = Line::from(vec![" Quit ".into(), "<Q> ".blue().bold()]);
+        let instructions = Line::from(vec![
+            " Scroll ".into(),
+            "<↑/↓/Wheel> ".blue().bold(),
+            " Back ".into(),
+            "<←/Esc> ".blue().bold(),
+            " Enter ".into(),
+            "<→/Enter> ".blue().bold(),
+            " Quit ".into(),
+            "<Q> ".blue().bold(),
+        ]);
         let block = Block::bordered().title_bottom(instructions);
-        let paragraph = Paragraph::new(text)
-            .block(block)
-            .scroll((self.scroll as u16, 0));
-        frame.render_widget(paragraph, area);
 
-        self.scroll_state = self
-            .scroll_state
-            .content_length(line_count)
+        let header = ["", "Name", "Size"]
+            .into_iter()
+            .map(Cell::from)
+            .collect::<Row>()
+            .style(Style::default().add_modifier(Modifier::BOLD))
+            .height(1);
+
+        let rows = self.rows();
+        let rows_len = rows.len();
+        let scroll = self.scroll.min(rows_len.saturating_sub(1));
+        let table = Table::new(
+            rows,
+            [
+                Constraint::Length(1),
+                Constraint::Fill(2),
+                Constraint::Fill(1),
+            ],
+        )
+        .block(block)
+        .header(header)
+        .style(Style::default())
+        .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED));
+        frame.render_stateful_widget(
+            table,
+            area,
+            &mut TableState::default().with_selected(self.scroll),
+        );
+
+        let mut scroll_state = ScrollbarState::default()
+            .position(scroll)
+            .content_length(rows_len)
             .viewport_content_length(area.height as usize);
 
         frame.render_stateful_widget(
@@ -83,8 +122,26 @@ impl App {
                 .begin_symbol(Some("↑"))
                 .end_symbol(Some("↓")),
             area,
-            &mut self.scroll_state,
+            &mut scroll_state,
         );
+
+        self.scroll = scroll;
+    }
+
+    fn rows(&'_ self) -> Vec<Row<'_>> {
+        self.tree
+            .children(self.folder)
+            .iter()
+            .map(|i| {
+                let node = &self.tree.nodes[*i];
+                let size = node.size_str();
+                let name = node.name();
+                match node {
+                    FileNode::File { .. } => Row::new([" ".to_string(), name, size]),
+                    FileNode::Dir { .. } => Row::new(["/".to_string(), name, size]),
+                }
+            })
+            .collect()
     }
 
     fn render_header(&self, frame: &mut Frame, area: Rect) {

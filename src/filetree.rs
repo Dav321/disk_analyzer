@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt::{Debug, Display, Formatter};
 
 pub type NodeId = usize;
@@ -14,6 +15,33 @@ impl FileTree {
             nodes: vec![root],
             root: 0,
         }
+    }
+
+    pub fn children(&self, folder_id: NodeId) -> Vec<NodeId> {
+        let FileNode::Dir { children, .. } = &self.nodes[folder_id] else {
+            unreachable!("Folder ID does not reference a folder")
+        };
+
+        let mut children = children.to_owned();
+        children.sort_by(|n1, n2| {
+            let get = |i| match &self.nodes[i] {
+                FileNode::File { size, .. } => (false, *size),
+                FileNode::Dir { size, .. } => (true, size.unwrap_or(0u64)),
+            };
+            let n1 = get(*n1);
+            let n2 = get(*n2);
+
+            if !n1.0 && !n2.0 {
+                n1.1.cmp(&n2.1)
+            } else if n1.0 && n2.0 {
+                Ordering::Equal
+            } else if n1.0 {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+        children
     }
 
     fn print_tree(&self, f: &mut Formatter<'_>, node: NodeId, depth: usize) -> std::fmt::Result {
@@ -72,6 +100,38 @@ impl FileNode {
             size,
             children,
         }
+    }
+
+    pub fn name(&self) -> String {
+        match self {
+            FileNode::File { name, .. } => name.to_owned(),
+            FileNode::Dir { name, .. } => name.to_owned(),
+        }
+    }
+
+    pub fn size_str(&self) -> String {
+        const SIZES: [(u64, &str); 6] = [
+            (1024u64.pow(5), "PiB"),
+            (1024u64.pow(4), "TiB"),
+            (1024u64.pow(3), "GiB"),
+            (1024u64.pow(2), "MiB"),
+            (1024u64, "KiB"),
+            (0u64, "B"),
+        ];
+
+        let size = match self {
+            FileNode::File { size, .. } => Some(*size),
+            FileNode::Dir { size, .. } => *size,
+        };
+        if let Some(size) = size {
+            for (min, trail) in SIZES {
+                if size >= min {
+                    return format!("{:.2} {}", size / min.max(1), trail);
+                }
+            }
+        }
+
+        "".to_owned()
     }
 }
 
