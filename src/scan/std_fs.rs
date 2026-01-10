@@ -18,6 +18,30 @@ impl StdFsScanner {
             .into_string()
             .expect("Invalid Path!")
     }
+
+    fn folder_size(&self, folder: NodeId, tree: &mut FileTree) -> u64 {
+        let children = match &tree.nodes[folder] {
+            FileNode::Dir { children, .. } => children.clone(),
+            _ => unreachable!(),
+        };
+
+        let mut total_size: u64 = 0;
+        for child in children {
+            total_size += match &tree.nodes[child] {
+                FileNode::File { size, .. } => *size,
+                FileNode::Dir {
+                    size: Some(size), ..
+                } => *size,
+                FileNode::Dir { size: None, .. } => self.folder_size(child, tree),
+            }
+        }
+
+        if let FileNode::Dir { size, .. } = &mut tree.nodes[folder] {
+            *size = Some(total_size);
+        }
+
+        total_size
+    }
 }
 
 impl Scanner for StdFsScanner {
@@ -54,6 +78,8 @@ impl Scanner for StdFsScanner {
                 }
             }
         }
+
+        self.folder_size(0, &mut tree);
 
         Ok(tree)
     }
