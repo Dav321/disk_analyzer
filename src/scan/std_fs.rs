@@ -53,7 +53,11 @@ impl Scanner for StdFsScanner {
         let mut buf: VecDeque<(NodeId, PathBuf)> = VecDeque::new();
         buf.push_back((0, path));
         while let Some((node_id, path)) = buf.pop_front() {
-            for entry in fs::read_dir(path)? {
+            let Ok(iter) = fs::read_dir(&path) else {
+                println!("Error enumerating \"{}\"", path.to_str().unwrap());
+                continue;
+            };
+            for entry in iter {
                 let entry = entry?;
                 let path = entry.path();
                 let name = Self::filename(&path);
@@ -72,7 +76,8 @@ impl Scanner for StdFsScanner {
                     let node = FileNode::file(name, node_id, size);
                     tree.nodes.push(node);
                 } else if path.is_symlink() {
-                    unimplemented!("Symlinks are not implemented!");
+                    //TODO Symlinks
+                    continue;
                 } else {
                     unimplemented!("Unknown File Type: {:?}", path)
                 }
