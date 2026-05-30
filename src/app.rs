@@ -84,7 +84,7 @@ impl App {
         ]);
         let block = Block::bordered().title_bottom(instructions);
 
-        let header = ["", "Name", "Size"]
+        let header = ["", "Name", "Size", "Target"]
             .into_iter()
             .map(Cell::from)
             .collect::<Row>()
@@ -100,6 +100,7 @@ impl App {
                 Constraint::Length(1),
                 Constraint::Fill(2),
                 Constraint::Fill(1),
+                Constraint::Fill(2),
             ],
         )
         .block(block)
@@ -137,8 +138,9 @@ impl App {
                 let size = node.size_str();
                 let name = node.name();
                 match node {
-                    FileNode::File { .. } => Row::new([" ".to_string(), name, size]),
-                    FileNode::Dir { .. } => Row::new(["/".to_string(), name, size]),
+                    FileNode::File { .. } => Row::new([" ".to_string(), name, size, "".to_string()]),
+                    FileNode::Dir { .. } => Row::new(["/".to_string(), name, size, "".to_string()]),
+                    FileNode::Symlink { target, .. } => Row::new(["-".to_string(), name, size, target.to_owned()]),
                 }
             })
             .collect()

@@ -33,6 +33,7 @@ impl StdFsScanner {
                     size: Some(size), ..
                 } => *size,
                 FileNode::Dir { size: None, .. } => self.folder_size(child, tree),
+                FileNode::Symlink { .. } => 0,
             }
         }
 
@@ -67,7 +68,13 @@ impl Scanner for StdFsScanner {
                     _ => unreachable!(),
                 }
 
-                if path.is_dir() {
+                if path.is_symlink() {
+                    let path = path.canonicalize()?;
+                    let target = path.into_os_string()
+                        .into_string().expect("Invalid Symlik Path!");
+                    let node = FileNode::Symlink { name, target };
+                    tree.nodes.push(node);
+                } else if path.is_dir() {
                     let node = FileNode::dir(name, Some(node_id), None, vec![]);
                     buf.push_back((index, path));
                     tree.nodes.push(node);
@@ -75,9 +82,6 @@ impl Scanner for StdFsScanner {
                     let size = path.metadata()?.len();
                     let node = FileNode::file(name, node_id, size);
                     tree.nodes.push(node);
-                } else if path.is_symlink() {
-                    //TODO Symlinks
-                    continue;
                 } else {
                     unimplemented!("Unknown File Type: {:?}", path)
                 }

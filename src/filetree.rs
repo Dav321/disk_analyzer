@@ -67,6 +67,10 @@ pub enum FileNode {
         size: Option<u64>,
         children: Vec<NodeId>,
     },
+    Symlink {
+        name: String,
+        target: String,
+    }
 }
 
 impl FileNode {
@@ -90,15 +94,18 @@ impl FileNode {
 
     pub fn name(&self) -> String {
         match self {
-            FileNode::File { name, .. } => name.to_owned(),
-            FileNode::Dir { name, .. } => name.to_owned(),
+            FileNode::File { name, .. } => name,
+            FileNode::Dir { name, .. } => name,
+            FileNode::Symlink { name, .. } => name,
         }
+            .to_owned()
     }
 
     pub fn size(&self) -> Option<u64> {
         match self {
             FileNode::File { size, .. } => Some(*size),
             FileNode::Dir { size, .. } => *size,
+            FileNode::Symlink { .. } => Some(0),
         }
     }
 
@@ -128,9 +135,8 @@ impl Display for FileNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             FileNode::File { name, size, .. } => write!(f, "File \"{}\" ({})", name, size),
-            FileNode::Dir { name, .. } => {
-                write!(f, "Dir \"{}\"", name)
-            }
+            FileNode::Dir { name, .. } => write!(f, "Dir \"{}\"", name),
+            FileNode::Symlink { name, target } => write!(f, "Symlink \"{}\" -> {}", name, target),
         }
     }
 }
