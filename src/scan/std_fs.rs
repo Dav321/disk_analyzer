@@ -2,12 +2,12 @@ use crate::filetree::{FileNode, FileTree, NodeId};
 use crate::scan::scanner::Scanner;
 use std::collections::VecDeque;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct StdFsScanner {}
 
 impl StdFsScanner {
-    fn filename(path: &PathBuf) -> String {
+    fn filename(path: &Path) -> String {
         let file_name = path.file_name();
         if file_name.is_none() {
             return "".to_string();
@@ -46,10 +46,12 @@ impl StdFsScanner {
 }
 
 impl Scanner for StdFsScanner {
-    fn scan_path(&self, path: PathBuf) -> std::io::Result<FileTree> {
+    fn scan_path(&self, path: &Path) -> std::io::Result<FileTree> {
+        let path = path.canonicalize()?;
         let root_name = Self::filename(&path);
         let root = FileNode::dir(root_name, None, None, vec![]);
-        let mut tree = FileTree::new(root);
+        let root_path = path.to_str().expect("Invalid root path!").to_string() + "/";
+        let mut tree = FileTree::new(root, root_path);
 
         let mut buf: VecDeque<(NodeId, PathBuf)> = VecDeque::new();
         buf.push_back((0, path));
@@ -70,9 +72,11 @@ impl Scanner for StdFsScanner {
 
                 if path.is_symlink() {
                     let path = path.canonicalize()?;
-                    let target = path.into_os_string()
-                        .into_string().expect("Invalid Symlik Path!");
-                    let node = FileNode::Symlink { name, target };
+                    let target = path
+                        .into_os_string()
+                        .into_string()
+                        .expect("Invalid Symlik Path!");
+                    let node = FileNode::symlink(name, node_id, target);
                     tree.nodes.push(node);
                 } else if path.is_dir() {
                     let node = FileNode::dir(name, Some(node_id), None, vec![]);

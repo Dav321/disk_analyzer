@@ -6,13 +6,15 @@ pub type NodeId = usize;
 pub struct FileTree {
     pub nodes: Vec<FileNode>,
     pub root: NodeId,
+    root_path: String,
 }
 
 impl FileTree {
-    pub fn new(root: FileNode) -> Self {
+    pub fn new(root: FileNode, root_path: String) -> Self {
         Self {
             nodes: vec![root],
             root: 0,
+            root_path,
         }
     }
 
@@ -33,18 +35,31 @@ impl FileTree {
     fn print_tree(&self, f: &mut Formatter<'_>, node: NodeId, depth: usize) -> std::fmt::Result {
         let node = self.nodes.get(node).unwrap();
 
-        write!(f, "{}{}\n", " ".repeat(depth), node)?;
+        writeln!(f, "{}{}", " ".repeat(depth), node)?;
 
-        match node {
-            FileNode::Dir { children, .. } => {
-                for child in children {
-                    self.print_tree(f, *child, depth + 2)?;
-                }
+        if let FileNode::Dir { children, .. } = node {
+            for child in children {
+                self.print_tree(f, *child, depth + 2)?;
             }
-            _ => {}
         }
 
         Ok(())
+    }
+
+    pub fn path(&self, node: NodeId) -> String {
+        let node = self.nodes.get(node).unwrap();
+        match node {
+            FileNode::File { name, parent, .. } => self.path(*parent) + name,
+            FileNode::Dir {
+                name,
+                parent: Some(parent),
+                ..
+            } => self.path(*parent) + name + "/",
+            FileNode::Dir {
+                name, parent: None, ..
+            } => self.root_path.clone() + name + "/",
+            FileNode::Symlink { name, parent, .. } => self.path(*parent) + name,
+        }
     }
 }
 
@@ -69,8 +84,9 @@ pub enum FileNode {
     },
     Symlink {
         name: String,
+        parent: NodeId,
         target: String,
-    }
+    },
 }
 
 impl FileNode {
@@ -92,13 +108,21 @@ impl FileNode {
         }
     }
 
+    pub fn symlink(name: String, parent: NodeId, target: String) -> Self {
+        Self::Symlink {
+            name,
+            parent,
+            target,
+        }
+    }
+
     pub fn name(&self) -> String {
         match self {
             FileNode::File { name, .. } => name,
             FileNode::Dir { name, .. } => name,
             FileNode::Symlink { name, .. } => name,
         }
-            .to_owned()
+        .to_owned()
     }
 
     pub fn size(&self) -> Option<u64> {
@@ -136,7 +160,9 @@ impl Display for FileNode {
         match self {
             FileNode::File { name, size, .. } => write!(f, "File \"{}\" ({})", name, size),
             FileNode::Dir { name, .. } => write!(f, "Dir \"{}\"", name),
-            FileNode::Symlink { name, target } => write!(f, "Symlink \"{}\" -> {}", name, target),
+            FileNode::Symlink { name, target, .. } => {
+                write!(f, "Symlink \"{}\" -> {}", name, target)
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ use crossterm::event;
 use crossterm::event::KeyCode;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Constraint, HorizontalAlignment, Layout, Line, Modifier, Style, Stylize};
+use ratatui::text::ToSpan;
 use ratatui::widgets::{
     Block, Cell, Row, Scrollbar, ScrollbarOrientation, ScrollbarState, Table, TableState,
 };
@@ -50,10 +51,10 @@ impl App {
                         }
                     }
                     KeyCode::Left | KeyCode::Esc => {
-                        if let FileNode::Dir { parent, .. } = self.tree.nodes[self.folder] {
-                            if let Some(parent) = parent {
-                                self.folder = parent;
-                            }
+                        if let FileNode::Dir { parent, .. } = self.tree.nodes[self.folder]
+                            && let Some(parent) = parent
+                        {
+                            self.folder = parent;
                         }
                     }
                     _ => {}
@@ -138,20 +139,28 @@ impl App {
                 let size = node.size_str();
                 let name = node.name();
                 match node {
-                    FileNode::File { .. } => Row::new([" ".to_string(), name, size, "".to_string()]),
+                    FileNode::File { .. } => {
+                        Row::new([" ".to_string(), name, size, "".to_string()])
+                    }
                     FileNode::Dir { .. } => Row::new(["/".to_string(), name, size, "".to_string()]),
-                    FileNode::Symlink { target, .. } => Row::new(["-".to_string(), name, size, target.to_owned()]),
+                    FileNode::Symlink { target, .. } => {
+                        Row::new(["-".to_string(), name, size, target.to_owned()])
+                    }
                 }
             })
             .collect()
     }
 
     fn render_header(&self, frame: &mut Frame, area: Rect) {
+        let path = self.tree.path(self.folder);
+
         let title = Block::new()
             .title_alignment(HorizontalAlignment::Center)
             .title(vec![
                 "Disk Analyzer".add_modifier(Modifier::BOLD),
                 env!("CARGO_PKG_VERSION").reset(),
+                " - ".add_modifier(Modifier::DIM),
+                path.to_span(),
             ]);
         frame.render_widget(title, area);
     }

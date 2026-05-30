@@ -18,7 +18,7 @@ fn main() -> io::Result<()> {
 
     let scanner = StdFsScanner {};
     print!("Scanning with {}...", scanner.name());
-    let tree = scanner.scan_path(PathBuf::from(path))?;
+    let tree = scanner.scan_path(&PathBuf::from(path))?;
     println!(" Done!");
 
     let mut app = App::new(tree);

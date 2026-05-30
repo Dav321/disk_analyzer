@@ -1,7 +1,7 @@
 use crate::filetree::FileTree;
-use std::path::PathBuf;
+use std::path::Path;
 
 pub trait Scanner {
-    fn scan_path(&self, path: PathBuf) -> std::io::Result<FileTree>;
+    fn scan_path(&self, path: &Path) -> std::io::Result<FileTree>;
     fn name(&self) -> &'static str;
 }
