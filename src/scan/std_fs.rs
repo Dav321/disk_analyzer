@@ -71,7 +71,7 @@ impl Scanner for StdFsScanner {
                 }
 
                 if path.is_symlink() {
-                    let path = path.canonicalize()?;
+                    let path = path.read_link()?;
                     let target = path
                         .into_os_string()
                         .into_string()
@@ -87,7 +87,7 @@ impl Scanner for StdFsScanner {
                     let node = FileNode::file(name, node_id, size);
                     tree.nodes.push(node);
                 } else {
-                    unimplemented!("Unknown File Type: {:?}", path)
+                    println!("Unknown File Type: {:?}, Skipping!", path);
                 }
             }
         }
